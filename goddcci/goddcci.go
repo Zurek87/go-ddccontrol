@@ -9,6 +9,7 @@ import (
 #cgo pkg-config: ddccontrol
 #include "goddcci.go.h"
 #include <ddccontrol/ddcci.h>
+
 */
 import "C"
 
@@ -32,9 +33,9 @@ func InitDDCci() (DDCci, error) {
 		supported:make([]*C.struct_monitorlist, 0),
 		}
 	ddcci.detectSupportedMonitors()
-	ddcci.openMonitor()
+	err = ddcci.openMonitor()
 
-	return ddcci, nil
+	return ddcci, err
 }
 
 func initDDCci() error {
@@ -64,7 +65,7 @@ func (ddcci *DDCci)detectSupportedMonitors() {
 
 }
 
-func (ddcci *DDCci)openMonitor() {
+func (ddcci *DDCci)openMonitor() error {
 	if ddcci.selected != nil {
 		fileName := ddcci.selected.filename
 		var mon C.struct_monitor
@@ -78,7 +79,10 @@ func (ddcci *DDCci)openMonitor() {
 			pnpid = C.GoString(&mon.pnpid[0])
 		}
 		fmt.Printf("Opened monitor: %v [%v]\n", pnpid, monName)
+		ddcci.monitor = &mon
+		return nil
 	}
+	return fmt.Errorf("no supported monitor found")
 }
 
 func printInfo(monList *C.struct_monitorlist) {
@@ -99,8 +103,10 @@ func printInfo(monList *C.struct_monitorlist) {
 	fmt.Printf("Input type:: %v\n", input)
 }
 
-func (ddcci *DDCci)SetBrightness() {
-
-	delay := C.int(0)
-	C.ddcci_writectrl(ddcci.monitor, 0x10, 10, delay)
+func (ddcci *DDCci)SetBrightness(value int) {
+	var cc C.char = 0x10
+	delay := C.find_write_delay(ddcci.monitor, cc)
+	fmt.Println(delay)
+	cval := C.ushort(value)
+	C.ddcci_writectrl(ddcci.monitor, 0x10, cval, delay)
 }

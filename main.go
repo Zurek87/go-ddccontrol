@@ -4,6 +4,7 @@ import (
 	"./goddcci"
 	"log"
 	"fmt"
+	"time"
 )
 
 func main() {
@@ -11,5 +12,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(ddcci)
+	fmt.Println("Time to setup")
+
+	fmt.Println("Time to setup")
+	ddcci.SetBrightness(100)
+	time.Sleep(5 * time.Second)
+	ddcci.SetBrightness(0)
 }
