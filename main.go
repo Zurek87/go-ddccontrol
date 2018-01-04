@@ -2,8 +2,14 @@ package main
 
 import (
 	"./goddcci"
+	"log"
+	"fmt"
 )
 
 func main() {
-	goddcci.InitDDCci()
+	ddcci, err := goddcci.InitDDCci()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(ddcci)
 }
