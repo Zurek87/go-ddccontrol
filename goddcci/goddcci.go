@@ -69,8 +69,7 @@ func (ddcci *DDCci)openMonitor() error {
 	if ddcci.selected != nil {
 		fileName := ddcci.selected.filename
 		var mon C.struct_monitor
-		ret := C.ddcci_open(&mon, fileName, 0)
-		fmt.Println(ret)
+		_ = C.ddcci_open(&mon, fileName, 0)
 		monName := "UnKnow"
 		pnpid := "UnKnow"
 		if mon.db != nil {
@@ -103,10 +102,9 @@ func printInfo(monList *C.struct_monitorlist) {
 	fmt.Printf("Input type:: %v\n", input)
 }
 
-func (ddcci *DDCci)SetBrightness(value int) {
+func (ddcci *DDCci)SetBrightness(value int8) {
 	var cc C.char = 0x10
 	delay := C.find_write_delay(ddcci.monitor, cc)
-	fmt.Println(delay)
 	cval := C.ushort(value)
 	C.ddcci_writectrl(ddcci.monitor, 0x10, cval, delay)
 }

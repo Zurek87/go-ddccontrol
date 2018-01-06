@@ -1,21 +1,13 @@
 package main
 
 import (
-	"./goddcci"
-	"log"
-	"fmt"
-	"time"
+	"github.com/zurek87/go-ddccontrol/gui"
 )
 
 func main() {
-	ddcci, err := goddcci.InitDDCci()
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Time to setup")
+	gddcci := gui.NewGui()
+	gddcci.Show()
 
-	fmt.Println("Time to setup")
-	ddcci.SetBrightness(100)
-	time.Sleep(5 * time.Second)
-	ddcci.SetBrightness(0)
+	gddcci.Main()
+
 }
