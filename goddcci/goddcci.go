@@ -19,6 +19,7 @@ type DDCci struct {
 	selected *C.struct_monitorlist
 	monitor *C.struct_monitor
 	supported []*C.struct_monitorlist
+	monitorName string
 }
 
 func InitDDCci() (DDCci, error) {
@@ -40,6 +41,7 @@ func InitDDCci() (DDCci, error) {
 
 func initDDCci() error {
 	res := int(C.ddcci_init(nil))
+	fmt.Println("Ten teges odpowiedz z init: ", res)
 	if res == 0 {
 		return fmt.Errorf("ddcci initialize error")
 	}
@@ -69,7 +71,8 @@ func (ddcci *DDCci)openMonitor() error {
 	if ddcci.selected != nil {
 		fileName := ddcci.selected.filename
 		var mon C.struct_monitor
-		_ = C.ddcci_open(&mon, fileName, 0)
+		i := C.ddcci_open(&mon, fileName, 0)
+		fmt.Println("Ten teges odpowiedz z open: ", i)
 		monName := "UnKnow"
 		pnpid := "UnKnow"
 		if mon.db != nil {
@@ -79,9 +82,10 @@ func (ddcci *DDCci)openMonitor() error {
 		}
 		fmt.Printf("Opened monitor: %v [%v]\n", pnpid, monName)
 		ddcci.monitor = &mon
+		ddcci.monitorName = monName
 		return nil
 	}
-	return fmt.Errorf("no supported monitor found")
+	return fmt.Errorf("DDCCi no supported monitor found, is mod 'i2c-dev' loaded? ")
 }
 
 func printInfo(monList *C.struct_monitorlist) {
