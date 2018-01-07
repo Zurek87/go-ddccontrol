@@ -23,7 +23,7 @@ func NewGui() GDDCci {
 	if err != nil {
 		panic(err)
 	}
-	return GDDCci{ddcci: &ddcci}
+	return GDDCci{ddcci: &ddcci, lastLevel: 101}
 }
 
 func (gddcci *GDDCci) Show() {
@@ -54,16 +54,16 @@ func (gddcci *GDDCci) initIcon() {
 func (gddcci *GDDCci)onScroll(cbx *glib.CallbackContext) {
 	arg := cbx.Args(0)
 	event := *(**gdk3.EventScroll)(unsafe.Pointer(&arg))
-	//fmt.Println(event.Direction, event.State, event)
-	var stateUp uint = 0x200000010
-	var stateDown uint = 0x300000010
-	if event.State == stateUp {
+	var stateUp uint   = 0x200000000
+	var stateDown uint = 0x300000000
+
+	if event.State & stateUp == stateUp && event.State & stateDown != stateDown {
 		gddcci.level += 3
 		if gddcci.level > 100 {
 			gddcci.level = 100
 		}
 	}
-	if event.State == stateDown {
+	if event.State & stateDown == stateDown {
 		gddcci.level -= 3
 		if gddcci.level < 0 {
 			gddcci.level = 0
@@ -76,6 +76,7 @@ func (gddcci *GDDCci)updateDefaultMonitor() {
 	if gddcci.level != gddcci.lastLevel {
 		gddcci.ddcci.SetBrightness(gddcci.level)
 		label := fmt.Sprintf("Brightness: %v", gddcci.level)
+
 		gddcci.icon.SetTitle(label)
 		gddcci.lastLevel = gddcci.level
 	}
