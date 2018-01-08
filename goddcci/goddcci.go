@@ -28,20 +28,37 @@ func InitDDCci() (DDCci, error) {
 		return DDCci{}, err
 	}
 	fmt.Println("Initialized DDCci")
-	monitorList := C.ddcci_probe()
-	ddcci := DDCci{
-		monitorList:monitorList,
-		supported:make([]*C.struct_monitorlist, 0),
-		}
+
+	monitorList, err := probeDDCci()
+	if err != nil {
+		return DDCci{}, err
+	}
+	ddcci := makeDDCci(monitorList)
 	ddcci.detectSupportedMonitors()
 	err = ddcci.openMonitor()
 
 	return ddcci, err
 }
 
+func probeDDCci() (*C.struct_monitorlist, error) {
+	monitorList := C.ddcci_probe()
+	if monitorList == nil {
+		err := fmt.Errorf("monitor list is empty, is mod 'i2c-dev' loaded? ")
+		return monitorList, err
+	}
+	fmt.Println("monitor list: ", monitorList)
+	return monitorList, nil
+}
+
+func makeDDCci(monitorList *C.struct_monitorlist) DDCci {
+	return DDCci{
+		monitorList:monitorList,
+		supported:make([]*C.struct_monitorlist, 0),
+	}
+}
+
 func initDDCci() error {
 	res := int(C.ddcci_init(nil))
-	fmt.Println("Ten teges odpowiedz z init: ", res)
 	if res == 0 {
 		return fmt.Errorf("ddcci initialize error")
 	}
@@ -71,8 +88,7 @@ func (ddcci *DDCci)openMonitor() error {
 	if ddcci.selected != nil {
 		fileName := ddcci.selected.filename
 		var mon C.struct_monitor
-		i := C.ddcci_open(&mon, fileName, 0)
-		fmt.Println("Ten teges odpowiedz z open: ", i)
+		C.ddcci_open(&mon, fileName, 0)
 		monName := "UnKnow"
 		pnpid := "UnKnow"
 		if mon.db != nil {
@@ -85,7 +101,7 @@ func (ddcci *DDCci)openMonitor() error {
 		ddcci.monitorName = monName
 		return nil
 	}
-	return fmt.Errorf("DDCCi no supported monitor found, is mod 'i2c-dev' loaded? ")
+	return fmt.Errorf("DDCCi no supported monitor found")
 }
 
 func printInfo(monList *C.struct_monitorlist) {
