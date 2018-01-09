@@ -45,6 +45,7 @@ type MonitorInfo struct {
 	PnPid string
 	monitor *C.struct_monitor
 	monitorList *C.struct_monitorlist
+	BrightnessLevel int
 }
 
 func InitDDCci() (DDCci, error) {
@@ -60,7 +61,8 @@ func InitDDCci() (DDCci, error) {
 	}
 	ddcci := makeDDCci(monitorList)
 	ddcci.detectSupportedMonitors()
-	err = ddcci.openMonitor(0)
+	ddcci.openSupportedMonitors()
+
 
 	return ddcci, err
 }
@@ -113,20 +115,19 @@ func (ddcci *DDCci)detectSupportedMonitors() {
 	}
 }
 
-func (ddcci *DDCci)openMonitor(id int) error {
-	if ddcci.count < 0 {
-		return fmt.Errorf("DDCCi no supported monitor found")
+func (ddcci *DDCci)openSupportedMonitors() {
+	for _, mon := range ddcci.list {
+		mon.openMonitor()
 	}
-	if id >= ddcci.count {
-		return fmt.Errorf("index out of range. Monitor count: %v, got: %v", ddcci.count + 1, id)
-	}
+}
 
-	selected := ddcci.list[id]
-	if selected.monitor != nil {
+func (info *MonitorInfo)openMonitor() error {
+
+	if info.monitor != nil {
 		return nil
 	}
 
-	fileName := selected.monitorList.filename
+	fileName := info.monitorList.filename
 	var mon C.struct_monitor
 	C.ddcci_open(&mon, fileName, 0)
 	monitorName := ""
@@ -137,28 +138,21 @@ func (ddcci *DDCci)openMonitor(id int) error {
 		pnpid = C.GoString(&mon.pnpid[0])
 	}
 	fmt.Printf("Opened monitor: %v [%v]\n", pnpid, monitorName)
-	selected.monitor = &mon
-	selected.Name = monitorName
-	selected.PnPid = pnpid
+	info.monitor = &mon
+	info.Name = monitorName
+	info.PnPid = pnpid
 
 	return nil
 }
-
-
 
 func (ddcci *DDCci) MonitorList() []*MonitorInfo{
 	return ddcci.list
 }
 
 func (ddcci *DDCci) DefaultMonitor() (*MonitorInfo, error){
-	err := ddcci.openMonitor(0)
-	if err != nil {
-		return nil, err
-	}
 	info := ddcci.list[0]
 	return info, nil
 }
-
 
 
 func (info *MonitorInfo) MonitorName() string{
@@ -186,12 +180,13 @@ func printInfo(monList *C.struct_monitorlist) {
 	fmt.Printf("Input type:: %v\n", input)
 }
 
-func (info *MonitorInfo) SetBrightness(value int8) {
+func (info *MonitorInfo) SetBrightness(value int8) error {
 	if info == nil || info.monitor == nil {
-		panic(fmt.Errorf("monitor closed. Please open first"))
+		return fmt.Errorf("monitor closed. Please open first")
 	}
 	var cc C.char = 0x10
 	delay := C.find_write_delay(info.monitor, cc)
 	cval := C.ushort(value)
 	C.ddcci_writectrl(info.monitor, 0x10, cval, delay)
+	return nil
 }

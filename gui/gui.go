@@ -33,6 +33,7 @@ type GDDCci struct {
 	level int8
 	lastLevel int8
 	icon *gtk3.StatusIcon
+	list []*goddcci.MonitorInfo
 	selected *goddcci.MonitorInfo
 }
 
@@ -43,10 +44,16 @@ func NewGui() GDDCci {
 		panic(err)
 	}
 	info, err := ddcci.DefaultMonitor()
+	if err != nil {
+		panic(err)
+	}
+	list := ddcci.MonitorList()
+
 	return GDDCci{
 		ddcci: &ddcci,
 		lastLevel: 101,
 		selected: info,
+		list: list,
 	}
 }
 
@@ -57,11 +64,13 @@ func (gddcci *GDDCci) Show() {
 	gddcci.initIcon()
 }
 
-func (gddcci *GDDCci) listMonitors() {
-	list := gddcci.ddcci.MonitorList()
-	for info := range list {
-		fmt.Println(info)
+
+func (gddcci *GDDCci) SelectMonitor(id int) error {
+	if len(gddcci.list) <= id {
+		return fmt.Errorf("monitor id out of range")
 	}
+	gddcci.selected = gddcci.list[id]
+	return nil
 }
 
 func (gddcci *GDDCci) initIcon() {
@@ -111,12 +120,12 @@ func (gddcci *GDDCci)onScroll(cbx *glib.CallbackContext) {
 func (gddcci *GDDCci)updateSelectedMonitor() {
 	if gddcci.level != gddcci.lastLevel {
 		if gddcci.selected == nil {
-			panic(fmt.Errorf("asd"))
+			panic(fmt.Errorf("monitor not selected"))
 		}
 		gddcci.selected.SetBrightness(gddcci.level)
-		label := fmt.Sprintf("Brightness: %v", gddcci.level)
-
-		gddcci.icon.SetTitle(label)
+		//label := fmt.Sprintf("Brightness: %v", gddcci.level)
+		//
+		//gddcci.icon.SetTitle(label)
 		gddcci.lastLevel = gddcci.level
 	}
 }

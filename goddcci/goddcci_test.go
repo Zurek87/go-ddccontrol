@@ -2,6 +2,7 @@ package goddcci
 
 import (
 	"testing"
+	"time"
 )
 
 func TestInitDDCci2(t *testing.T) {
@@ -27,10 +28,6 @@ func TestDDCci(t *testing.T) {
 	if ddcci.count == 0 {
 		t.Error("Expected to find supported monitor")
 	}
-	err = ddcci.openMonitor(0)
-	if err != nil {
-		t.Error("Expected to open monitor, got error:", err)
-	}
 
 	defaultMonitor, err := ddcci.DefaultMonitor()
 	if err != nil {
@@ -43,5 +40,13 @@ func TestDDCci(t *testing.T) {
 	list := ddcci.MonitorList()
 	if len(list) == 0 {
 		t.Error("Empty monitor list")
+	}
+
+	err = defaultMonitor.SetBrightness(10)
+	if err != nil {
+		t.Error("Expected to set brightness, got error:", err)
+	} else {
+		time.Sleep(1 * time.Second)
+		defaultMonitor.SetBrightness(0)
 	}
 }
