@@ -1,3 +1,21 @@
+/*
+	Implementation ddccontrol for GO
+
+	Some hint:
+	- C.struct_monitorlist
+		- contains information about detected monitor:
+			- filename: path to i2c dev
+
+		- is first monitor info returned from C.ddcci_probe()
+		- to get(need assign) next use .next
+	- C.struct_monitor
+		- opened monitor (C.ddcci_open)
+		- have some information about monitor:
+			- pnpid: eg: "DELD072"
+			- db (more specific information):
+				-name: eg: "VESA standard monitor"
+
+ */
 package goddcci
 
 import (
@@ -15,16 +33,11 @@ import "C"
 
 
 type DDCci struct {
-	// structures from ddcci
 	monitorList *C.struct_monitorlist
-	supported []*C.struct_monitorlist
-	selected *C.struct_monitorlist
-	monitor *C.struct_monitor
-	// go friendly ;)
-	list []MonitorInfo
-	// selected monitor info:
-	monitorName string
-	pnpid string
+
+	list []*MonitorInfo
+	selectedId int
+	count int
 }
 
 type MonitorInfo struct {
@@ -32,6 +45,7 @@ type MonitorInfo struct {
 	Name string
 	PnPid string
 	monitor *C.struct_monitor
+	monitorList *C.struct_monitorlist
 }
 
 func InitDDCci() (DDCci, error) {
@@ -47,7 +61,7 @@ func InitDDCci() (DDCci, error) {
 	}
 	ddcci := makeDDCci(monitorList)
 	ddcci.detectSupportedMonitors()
-	err = ddcci.openMonitor()
+	err = ddcci.openMonitor(0)
 
 	return ddcci, err
 }
@@ -65,7 +79,9 @@ func probeDDCci() (*C.struct_monitorlist, error) {
 func makeDDCci(monitorList *C.struct_monitorlist) DDCci {
 	return DDCci{
 		monitorList:monitorList,
-		supported:make([]*C.struct_monitorlist, 0),
+		list:make([]*MonitorInfo, 0),
+		count: 0,
+		selectedId: -1,
 	}
 }
 
@@ -77,6 +93,12 @@ func initDDCci() error {
 	return nil
 }
 
+func newMonitorInfo(mon *C.struct_monitorlist) MonitorInfo {
+	return MonitorInfo{
+		monitorList:mon,
+		Name: C.GoString(mon.name),
+	}
+}
 
 func (ddcci *DDCci)detectSupportedMonitors() {
 	current := ddcci.monitorList
@@ -86,48 +108,70 @@ func (ddcci *DDCci)detectSupportedMonitors() {
 		}
 		printInfo(current)
 		if current.supported == 1 {
-			ddcci.supported = append(ddcci.supported, current)
-			if ddcci.selected == nil {
-				ddcci.selected = current
+			info := newMonitorInfo(current)
+			ddcci.list = append(ddcci.list, &info)
+			if ddcci.selectedId < 0 {
+				ddcci.selectedId = ddcci.count
 			}
+			ddcci.count++
 		}
 		current = current.next
 	}
-
 }
 
-func (ddcci *DDCci)openMonitor() error {
-	if ddcci.selected != nil {
-		fileName := ddcci.selected.filename
-		var mon C.struct_monitor
-		C.ddcci_open(&mon, fileName, 0)
-		monitorName := ""
-		pnpid := "UnKnow"
-		if mon.db != nil {
-			name := C.xmlCharToChar(mon.db.name)
-			monitorName = C.GoString(name)
-			pnpid = C.GoString(&mon.pnpid[0])
-		}
-		fmt.Printf("Opened monitor: %v [%v]\n", pnpid, monitorName)
-		ddcci.monitor = &mon
-		ddcci.monitorName = monitorName
-		ddcci.pnpid = pnpid
+func (ddcci *DDCci)openMonitor(id int) error {
+	if ddcci.count < 0 {
+		return fmt.Errorf("DDCCi no supported monitor found")
+	}
+	if id >= ddcci.count {
+		return fmt.Errorf("index out of range. Monitor count: %v, got: %v", ddcci.count + 1, id)
+	}
+
+	selected := ddcci.list[id]
+	if selected.monitor != nil {
 		return nil
 	}
-	return fmt.Errorf("DDCCi no supported monitor found")
+
+	fileName := selected.monitorList.filename
+	var mon C.struct_monitor
+	C.ddcci_open(&mon, fileName, 0)
+	monitorName := ""
+	pnpid := "UnKnow"
+	if mon.db != nil {
+		name := C.xmlCharToChar(mon.db.name)
+		monitorName = C.GoString(name)
+		pnpid = C.GoString(&mon.pnpid[0])
+	}
+	fmt.Printf("Opened monitor: %v [%v]\n", pnpid, monitorName)
+	selected.monitor = &mon
+	selected.Name = monitorName
+	selected.PnPid = pnpid
+
+	return nil
 }
 
 
 
-func (ddcci *DDCci) MonitorList() []MonitorInfo{
+func (ddcci *DDCci) MonitorList() []*MonitorInfo{
 	return ddcci.list
 }
 
-func (ddcci *DDCci) MonitorName() string{
-	return ddcci.pnpid
+func (ddcci *DDCci) DefaultMonitor() (*MonitorInfo, error){
+	err := ddcci.openMonitor(0)
+	if err != nil {
+		return nil, err
+	}
+	info := ddcci.list[0]
+	return info, nil
 }
-func (ddcci *DDCci) MonitorFullName() string{
-	return fmt.Sprintf("%v [%v]\n", ddcci.pnpid, ddcci.monitorName)
+
+
+
+func (info *MonitorInfo) MonitorName() string{
+	return info.PnPid
+}
+func (info *MonitorInfo) MonitorFullName() string{
+	return fmt.Sprintf("%v [%v]\n", info.PnPid, info.Name)
 }
 
 func printInfo(monList *C.struct_monitorlist) {
@@ -148,9 +192,12 @@ func printInfo(monList *C.struct_monitorlist) {
 	fmt.Printf("Input type:: %v\n", input)
 }
 
-func (ddcci *DDCci)SetBrightness(value int8) {
+func (info *MonitorInfo) SetBrightness(value int8) {
+	if info == nil || info.monitor == nil {
+		panic(fmt.Errorf("monitor closed. Please open first"))
+	}
 	var cc C.char = 0x10
-	delay := C.find_write_delay(ddcci.monitor, cc)
+	delay := C.find_write_delay(info.monitor, cc)
 	cval := C.ushort(value)
-	C.ddcci_writectrl(ddcci.monitor, 0x10, cval, delay)
+	C.ddcci_writectrl(info.monitor, 0x10, cval, delay)
 }

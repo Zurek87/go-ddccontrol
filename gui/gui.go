@@ -11,6 +11,9 @@ import (
 
 func DialogError(errorMessage string) {
 	gtk3.Init(nil)
+	fmt.Println("------------------------------------------")
+	fmt.Println(errorMessage)
+	fmt.Println("------------------------------------------")
 	dialog := gtk3.NewMessageDialog(
 		nil,
 		gtk3.DIALOG_MODAL,
@@ -30,6 +33,7 @@ type GDDCci struct {
 	level int8
 	lastLevel int8
 	icon *gtk3.StatusIcon
+	selected *goddcci.MonitorInfo
 }
 
 func NewGui() GDDCci {
@@ -38,7 +42,12 @@ func NewGui() GDDCci {
 	if err != nil {
 		panic(err)
 	}
-	return GDDCci{ddcci: &ddcci, lastLevel: 101}
+	info, err := ddcci.DefaultMonitor()
+	return GDDCci{
+		ddcci: &ddcci,
+		lastLevel: 101,
+		selected: info,
+	}
 }
 
 func (gddcci *GDDCci) Show() {
@@ -57,7 +66,11 @@ func (gddcci *GDDCci) listMonitors() {
 
 func (gddcci *GDDCci) initIcon() {
 	gtk3.Init(nil)
-	appName := fmt.Sprintf("Brightness on %v", gddcci.ddcci.MonitorName())
+	monInfo, err := gddcci.ddcci.DefaultMonitor()
+	if err != nil {
+		panic(err)
+	}
+	appName := fmt.Sprintf("Brightness on %v", monInfo.MonitorName())
 	glib.SetApplicationName(appName)
 
 	menu := gtk3.NewMenu()
@@ -92,12 +105,15 @@ func (gddcci *GDDCci)onScroll(cbx *glib.CallbackContext) {
 			gddcci.level = 0
 		}
 	}
-	gddcci.updateDefaultMonitor()
+	gddcci.updateSelectedMonitor()
 }
 
-func (gddcci *GDDCci)updateDefaultMonitor() {
+func (gddcci *GDDCci)updateSelectedMonitor() {
 	if gddcci.level != gddcci.lastLevel {
-		gddcci.ddcci.SetBrightness(gddcci.level)
+		if gddcci.selected == nil {
+			panic(fmt.Errorf("asd"))
+		}
+		gddcci.selected.SetBrightness(gddcci.level)
 		label := fmt.Sprintf("Brightness: %v", gddcci.level)
 
 		gddcci.icon.SetTitle(label)

@@ -24,16 +24,20 @@ func TestDDCci(t *testing.T) {
 	}
 	ddcci := makeDDCci(monitorList)
 	ddcci.detectSupportedMonitors()
-	if len(ddcci.supported) == 0 {
+	if ddcci.count == 0 {
 		t.Error("Expected to find supported monitor")
 	}
-	err = ddcci.openMonitor()
+	err = ddcci.openMonitor(0)
 	if err != nil {
 		t.Error("Expected to open monitor, got error:", err)
 	}
 
-	if ddcci.monitorName == ""{
-		t.Error("Expected to monitor have name")
+	defaultMonitor, err := ddcci.DefaultMonitor()
+	if err != nil {
+		t.Error("Expected get default monitor, got error:", err)
+	}
+	if defaultMonitor.Name == ""{
+		t.Error("Expected to first monitor have name")
 	}
 
 	list := ddcci.MonitorList()
