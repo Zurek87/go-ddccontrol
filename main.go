@@ -11,7 +11,6 @@ func main() {
 	gddcci := gui.NewGui()
 	gddcci.Show()
 	gddcci.Main()
-
 }
 
 func onClose(){

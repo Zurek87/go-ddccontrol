@@ -36,7 +36,6 @@ type DDCci struct {
 	monitorList *C.struct_monitorlist
 
 	list []*MonitorInfo
-	selectedId int
 	count int
 }
 
@@ -72,7 +71,6 @@ func probeDDCci() (*C.struct_monitorlist, error) {
 		err := fmt.Errorf("monitor list is empty, is mod 'i2c-dev' loaded? ")
 		return monitorList, err
 	}
-	fmt.Println("monitor list: ", monitorList)
 	return monitorList, nil
 }
 
@@ -81,7 +79,6 @@ func makeDDCci(monitorList *C.struct_monitorlist) DDCci {
 		monitorList:monitorList,
 		list:make([]*MonitorInfo, 0),
 		count: 0,
-		selectedId: -1,
 	}
 }
 
@@ -110,9 +107,6 @@ func (ddcci *DDCci)detectSupportedMonitors() {
 		if current.supported == 1 {
 			info := newMonitorInfo(current)
 			ddcci.list = append(ddcci.list, &info)
-			if ddcci.selectedId < 0 {
-				ddcci.selectedId = ddcci.count
-			}
 			ddcci.count++
 		}
 		current = current.next
