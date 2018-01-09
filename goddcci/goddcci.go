@@ -15,11 +15,23 @@ import "C"
 
 
 type DDCci struct {
+	// structures from ddcci
 	monitorList *C.struct_monitorlist
+	supported []*C.struct_monitorlist
 	selected *C.struct_monitorlist
 	monitor *C.struct_monitor
-	supported []*C.struct_monitorlist
+	// go friendly ;)
+	list []MonitorInfo
+	// selected monitor info:
 	monitorName string
+	pnpid string
+}
+
+type MonitorInfo struct {
+	Id int
+	Name string
+	PnPid string
+	monitor *C.struct_monitor
 }
 
 func InitDDCci() (DDCci, error) {
@@ -89,19 +101,33 @@ func (ddcci *DDCci)openMonitor() error {
 		fileName := ddcci.selected.filename
 		var mon C.struct_monitor
 		C.ddcci_open(&mon, fileName, 0)
-		monName := "UnKnow"
+		monitorName := ""
 		pnpid := "UnKnow"
 		if mon.db != nil {
 			name := C.xmlCharToChar(mon.db.name)
-			monName = C.GoString(name)
+			monitorName = C.GoString(name)
 			pnpid = C.GoString(&mon.pnpid[0])
 		}
-		fmt.Printf("Opened monitor: %v [%v]\n", pnpid, monName)
+		fmt.Printf("Opened monitor: %v [%v]\n", pnpid, monitorName)
 		ddcci.monitor = &mon
-		ddcci.monitorName = monName
+		ddcci.monitorName = monitorName
+		ddcci.pnpid = pnpid
 		return nil
 	}
 	return fmt.Errorf("DDCCi no supported monitor found")
+}
+
+
+
+func (ddcci *DDCci) MonitorList() []MonitorInfo{
+	return ddcci.list
+}
+
+func (ddcci *DDCci) MonitorName() string{
+	return ddcci.pnpid
+}
+func (ddcci *DDCci) MonitorFullName() string{
+	return fmt.Sprintf("%v [%v]\n", ddcci.pnpid, ddcci.monitorName)
 }
 
 func printInfo(monList *C.struct_monitorlist) {

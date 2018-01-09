@@ -48,9 +48,17 @@ func (gddcci *GDDCci) Show() {
 	gddcci.initIcon()
 }
 
+func (gddcci *GDDCci) listMonitors() {
+	list := gddcci.ddcci.MonitorList()
+	for info := range list {
+		fmt.Println(info)
+	}
+}
+
 func (gddcci *GDDCci) initIcon() {
 	gtk3.Init(nil)
-	glib.SetApplicationName("Brightness")
+	appName := fmt.Sprintf("Brightness on %v", gddcci.ddcci.MonitorName())
+	glib.SetApplicationName(appName)
 
 	menu := gtk3.NewMenu()
 	menu.Append(closeMenuItem())

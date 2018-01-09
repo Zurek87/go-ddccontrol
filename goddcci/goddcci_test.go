@@ -31,4 +31,13 @@ func TestDDCci(t *testing.T) {
 	if err != nil {
 		t.Error("Expected to open monitor, got error:", err)
 	}
+
+	if ddcci.monitorName == ""{
+		t.Error("Expected to monitor have name")
+	}
+
+	list := ddcci.MonitorList()
+	if len(list) == 0 {
+		t.Error("Empty monitor list")
+	}
 }
