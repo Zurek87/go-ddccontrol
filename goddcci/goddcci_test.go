@@ -25,6 +25,7 @@ func TestDDCci(t *testing.T) {
 	}
 	ddcci := makeDDCci(monitorList)
 	ddcci.detectSupportedMonitors()
+	ddcci.openSupportedMonitors()
 	if ddcci.count == 0 {
 		t.Error("Expected to find supported monitor")
 	}

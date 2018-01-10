@@ -33,6 +33,7 @@ type GDDCci struct {
 	level int8
 	lastLevel int8
 	icon *gtk3.StatusIcon
+	menu *gtk3.Menu
 	list []*goddcci.MonitorInfo
 	selected *goddcci.MonitorInfo
 }
@@ -61,7 +62,10 @@ func (gddcci *GDDCci) Show() {
 	if gddcci.visible {
 		return
 	}
+	gddcci.initGTK()
 	gddcci.initIcon()
+	gddcci.initMenu()
+
 }
 
 
@@ -73,28 +77,46 @@ func (gddcci *GDDCci) SelectMonitor(id int) error {
 	return nil
 }
 
-func (gddcci *GDDCci) initIcon() {
+func (gddcci *GDDCci) initGTK() {
 	gtk3.Init(nil)
-	monInfo, err := gddcci.ddcci.DefaultMonitor()
-	if err != nil {
-		panic(err)
-	}
-	appName := fmt.Sprintf("Brightness on %v", monInfo.MonitorName())
+}
+
+func (gddcci *GDDCci) initIcon() {
+
+	appName := fmt.Sprintf("Brightness on %v", gddcci.selected.MonitorName())
 	glib.SetApplicationName(appName)
 
-	menu := gtk3.NewMenu()
-	menu.Append(closeMenuItem())
 
-	menu.ShowAll()
-	gddcci.icon = gtk3.NewStatusIconFromIconName("info")
+	gddcci.icon = gtk3.NewStatusIconFromFile("./gui/icons/brightness.png")
 	gddcci.icon.Connect("popup-menu", func(cbx *glib.CallbackContext) {
-		menu.Popup(nil, nil, gtk3.StatusIconPositionMenu, gddcci.icon, uint(cbx.Args(0)), uint32(cbx.Args(1)))
+		gddcci.menu.Popup(nil, nil, gtk3.StatusIconPositionMenu, gddcci.icon, uint(cbx.Args(0)), uint32(cbx.Args(1)))
 	})
 	gddcci.icon.Connect("scroll-event", func(cbx *glib.CallbackContext) {
 		gddcci.onScroll(cbx)
 	})
 
 }
+
+func (gddcci *GDDCci) initMenu() {
+	gddcci.menu = gtk3.NewMenu()
+	gddcci.addMenuItems()
+	gddcci.menu.Append(gtk3.NewSeparatorMenuItem())
+	gddcci.menu.Append(closeMenuItem())
+
+	gddcci.menu.ShowAll()
+}
+
+func (gddcci *GDDCci) addMenuItems() {
+	// add select monitor
+	group := glib.GSListAlloc()
+	for _, info := range gddcci.list{
+		item , gr := createChoseMonitorMenuItem(info, group)
+		gddcci.menu.Append(item)
+		group = gr // go-gtk bug
+	}
+}
+
+
 
 func (gddcci *GDDCci)onScroll(cbx *glib.CallbackContext) {
 	arg := cbx.Args(0)
@@ -138,6 +160,12 @@ func closeMenuItem() *gtk3.MenuItem {
 	return item
 }
 
+func createChoseMonitorMenuItem(info *goddcci.MonitorInfo, group *glib.SList) (*gtk3.RadioMenuItem, *glib.SList) {
+	label := fmt.Sprintf("Default: %v", info.PnPid)
+	item := gtk3.NewRadioMenuItemWithLabel(group, label)
+	gr := item.GetGroup()
+	return item, gr
+}
 
 
 func (gddcci *GDDCci) Main() {

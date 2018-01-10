@@ -22,6 +22,11 @@ func TestNewGui(t *testing.T) {
 }
 
 func TestChangeMonitor(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Error("Got error:", r)
+		}
+	}()
 	gui := NewGui()
 	gui.Show()
 
