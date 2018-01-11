@@ -108,6 +108,7 @@ func (ddcci *DDCci)detectSupportedMonitors() {
 		printInfo(current)
 		if current.supported == 1 {
 			info := newMonitorInfo(current)
+			info.Id = ddcci.count
 			ddcci.list = append(ddcci.list, &info)
 			ddcci.count++
 		}

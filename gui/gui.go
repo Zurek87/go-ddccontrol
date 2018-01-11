@@ -110,7 +110,7 @@ func (gddcci *GDDCci) addMenuItems() {
 	// add select monitor
 	group := glib.GSListAlloc()
 	for _, info := range gddcci.list{
-		item , gr := createChoseMonitorMenuItem(info, group)
+		item , gr := createChoseMonitorMenuItem(info, group, gddcci)
 		gddcci.menu.Append(item)
 		group = gr // go-gtk bug
 	}
@@ -160,9 +160,12 @@ func closeMenuItem() *gtk3.MenuItem {
 	return item
 }
 
-func createChoseMonitorMenuItem(info *goddcci.MonitorInfo, group *glib.SList) (*gtk3.RadioMenuItem, *glib.SList) {
+func createChoseMonitorMenuItem(info *goddcci.MonitorInfo, group *glib.SList, gddcci *GDDCci) (*gtk3.RadioMenuItem, *glib.SList) {
 	label := fmt.Sprintf("Default: %v", info.PnPid)
 	item := gtk3.NewRadioMenuItemWithLabel(group, label)
+	item.Connect("activate", func() {
+		gddcci.SelectMonitor(info.Id)
+	})
 	gr := item.GetGroup()
 	return item, gr
 }
