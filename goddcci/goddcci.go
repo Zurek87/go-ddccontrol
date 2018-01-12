@@ -45,7 +45,8 @@ type MonitorInfo struct {
 	PnPid string
 	monitor *C.struct_monitor
 	monitorList *C.struct_monitorlist
-	BrightnessLevel int
+	level uint16
+	maxLevel uint16
 }
 
 func InitDDCci() (DDCci, error) {
@@ -119,6 +120,7 @@ func (ddcci *DDCci)detectSupportedMonitors() {
 func (ddcci *DDCci)openSupportedMonitors() {
 	for _, mon := range ddcci.list {
 		mon.openMonitor()
+		mon.initBrightness()
 	}
 }
 
@@ -156,9 +158,18 @@ func (ddcci *DDCci) DefaultMonitor() (*MonitorInfo, error){
 }
 
 
+func (info *MonitorInfo) Level() uint16{
+	return info.level
+}
+
+func (info *MonitorInfo) MaxLevel() uint16{
+	return info.maxLevel
+}
+
 func (info *MonitorInfo) MonitorName() string{
 	return info.PnPid
 }
+
 func (info *MonitorInfo) MonitorFullName() string{
 	return fmt.Sprintf("%v [%v]\n", info.PnPid, info.Name)
 }
@@ -181,7 +192,7 @@ func printInfo(monList *C.struct_monitorlist) {
 	fmt.Printf("Input type:: %v\n", input)
 }
 
-func (info *MonitorInfo) SetBrightness(value int8) error {
+func (info *MonitorInfo) SetBrightness(value uint16) error {
 	if info == nil || info.monitor == nil {
 		return fmt.Errorf("monitor closed. Please open first")
 	}
@@ -189,5 +200,32 @@ func (info *MonitorInfo) SetBrightness(value int8) error {
 	delay := C.find_write_delay(info.monitor, cc)
 	cval := C.ushort(value)
 	C.ddcci_writectrl(info.monitor, 0x10, cval, delay)
+
+	info.level = value
 	return nil
+}
+
+/*
+int ddcci_readctrl(struct monitor* mon, unsigned char ctrl,
+	unsigned short *value, unsigned short *maximum);
+ */
+func (info *MonitorInfo) ReadCtrl(ctrlNo int8) (uint16, uint16, error) {
+	if info == nil || info.monitor == nil {
+		return 0, 0, fmt.Errorf("monitor closed. Please open first")
+	}
+	cc := C.uchar(ctrlNo)
+
+	var cval C.ushort
+	var cmax C.ushort
+	C.ddcci_readctrl(info.monitor, cc, &cval, &cmax)
+	return uint16(cval), uint16(cmax), nil
+}
+
+func (info *MonitorInfo) initBrightness() {
+	level, max, err := info.ReadCtrl(0x10)
+	if err != nil {
+		return
+	}
+	info.maxLevel = max
+	info.level = level
 }

@@ -42,12 +42,27 @@ func TestDDCci(t *testing.T) {
 	if len(list) == 0 {
 		t.Error("Empty monitor list")
 	}
+	// reading of current monitor value
+	defaultVal, _, err := defaultMonitor.ReadCtrl(0x10)
+	if err != nil {
+		t.Error("Expected to get brightness value, got error:", err)
+	}
 
-	err = defaultMonitor.SetBrightness(10)
+	var testValue uint16 = 14
+	if defaultVal == testValue {
+		testValue++
+	}
+	err = defaultMonitor.SetBrightness(testValue)
 	if err != nil {
 		t.Error("Expected to set brightness, got error:", err)
 	} else {
 		time.Sleep(1 * time.Second)
-		defaultMonitor.SetBrightness(0)
+		tmp, _, _ := defaultMonitor.ReadCtrl(0x10)
+		if tmp != uint16(testValue){
+			t.Error("Expected to confirm brightness, got", tmp)
+		}
+		defaultMonitor.SetBrightness(defaultVal)
 	}
+
+
 }

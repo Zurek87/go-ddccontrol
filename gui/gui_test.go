@@ -37,19 +37,19 @@ func TestChangeMonitor(t *testing.T) {
 	if err != nil {
 		t.Error("Expected Select monitor '0'; Got error:", err)
 	}
-	gui.selected.SetBrightness(100)
+	gui.SetBrightness(100)
 	count := len(list)
 	if count > 1 {
 		err = gui.SelectMonitor(count - 1)
 		if err != nil {
 			t.Errorf("Expected Select monitor '%v'; Got error: %v", count - 1, err)
 		}
-		gui.selected.SetBrightness(100)
+		gui.SetBrightness(100)
 		time.Sleep(1 * time.Second)
-		gui.selected.SetBrightness(0)
+		gui.SetBrightness(0)
 		gui.SelectMonitor(0)
 	} else {
 		t.Skip("Only one monitor found")
 	}
-	gui.selected.SetBrightness(0)
+	gui.SetBrightness(0)
 }
