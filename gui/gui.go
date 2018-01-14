@@ -5,6 +5,7 @@ import (
 	"github.com/zurek87/go-gtk3/glib"
 	"github.com/zurek87/go-gtk3/gtk3"
 	"github.com/zurek87/go-gtk3/gdk3"
+	"github.com/zurek87/go-gtk3/gdkpixbuf"
 	"unsafe"
 	"fmt"
 )
@@ -59,8 +60,8 @@ func (gddcci *GDDCci) initIcon() {
 	appName := fmt.Sprintf("Brightness on %v", gddcci.monitorName())
 	glib.SetApplicationName(appName)
 
-
-	gddcci.icon = gtk3.NewStatusIconFromFile("./gui/icons/brightness.png")
+	pixBuff, _ := gdkpixbuf.NewPixbufFromBytes(GuiIcon)
+	gddcci.icon = gtk3.NewStatusIconFromPixbuf(pixBuff)
 	gddcci.icon.Connect("popup-menu", func(cbx *glib.CallbackContext) {
 		gddcci.menu.Popup(nil, nil, gtk3.StatusIconPositionMenu, gddcci.icon, uint(cbx.Args(0)), uint32(cbx.Args(1)))
 	})
