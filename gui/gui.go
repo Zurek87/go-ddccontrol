@@ -109,6 +109,12 @@ func (gddcci *GDDCci) addMenuItems() {
 		gddcci.menu.Append(item)
 		group = gr // go-gtk bug
 	}
+
+	// add config monitor
+	for _, info := range gddcci.list{
+		item := createConfigMonitorMenuItem(info)
+		gddcci.menu.Append(item)
+	}
 }
 
 

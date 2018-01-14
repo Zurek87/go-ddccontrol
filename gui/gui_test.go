@@ -4,6 +4,7 @@ package gui
 import (
 	"testing"
 	"time"
+	"github.com/zurek87/go-gtk3/glib"
 )
 
 func TestNewGui(t *testing.T) {
@@ -52,4 +53,42 @@ func TestChangeMonitor(t *testing.T) {
 		t.Skip("Only one monitor found")
 	}
 	gui.SetBrightness(0)
+}
+
+func TestAddMenuItems(t *testing.T) {
+	gui := NewGui()
+
+	ddcciMonitorList := gui.ddcci.MonitorList()
+
+	if len(ddcciMonitorList) == 0 {
+		t.Error("Empty monitor list from DDCci")
+	}
+	list := guiMonitorList(ddcciMonitorList)
+	if len(list) == 0 {
+		t.Error("Empty monitor list from GUI")
+	}
+	// add select monitor
+	group := glib.GSListAlloc()
+	for _, info := range list{
+		item , gr := createChoseMonitorMenuItem(info, group, &gui)
+		if item == nil {
+			t.Error("MenuItem not created")
+		}
+		if gr == nil {
+			t.Error("No group returned")
+		}
+		group = gr // go-gtk bug
+	}
+
+	// add config monitor
+	for _, info := range list{
+		item := createConfigMonitorMenuItem(info)
+		if item == nil {
+			t.Error("MenuItem not created")
+		}
+		sub := item.GetSubmenu()
+		if sub == nil {
+			t.Error("MenuItem not have SubMenu")
+		}
+	}
 }

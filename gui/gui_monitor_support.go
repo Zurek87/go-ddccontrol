@@ -13,8 +13,15 @@ type GuiMonitorInfo struct{
 	run bool
 	changeChan chan int
 	LevelChan chan<- int
+	labelItem *gtk3.MenuItem
 }
 
+// for fast creation of menu items
+type menuValueName struct {
+	Name string
+	Value int
+	IsDelta bool
+}
 
 /*
 Can run only in separate thread
@@ -52,6 +59,10 @@ func (info *GuiMonitorInfo)getNewLevel() uint16 {
 
 func (info *GuiMonitorInfo)updateMonitor(level uint16) {
 	if info.info.Level() != level {
+		if info.labelItem != nil {
+			label := fmt.Sprintf("%v [ %v ]", info.info.PnPid, level)
+			info.labelItem.SetLabel(label)
+		}
 		info.info.SetBrightness(level)
 	}
 	time.Sleep(50*time.Millisecond)
@@ -80,6 +91,75 @@ func createChoseMonitorMenuItem(info *GuiMonitorInfo, group *glib.SList, gddcci 
 	})
 	gr := item.GetGroup()
 	return item, gr
+}
+
+func createConfigMonitorMenuItem(info *GuiMonitorInfo) (*gtk3.MenuItem) {
+	label := fmt.Sprintf("%v [ %v ]", info.info.PnPid, info.info.Level())
+
+	item := gtk3.NewMenuItemWithLabel(label)
+	submenu := gtk3.NewMenu()
+
+	itemLabel := gtk3.NewMenuItemWithLabel(info.info.PnPid)
+	itemLabel.SetSensitive(false)
+
+	submenu.Append(itemLabel)
+	submenu.Append(gtk3.NewSeparatorMenuItem())
+	info.labelItem = item
+
+	constValues := listOfMenuValueName(info)
+	for _, valInfo := range constValues{
+		if valInfo.Name == "---" {
+			submenu.Append(gtk3.NewSeparatorMenuItem())
+		} else {
+			subItem := createSetBrightnessMenuItem(valInfo)
+			info.bindOnClick(subItem, valInfo)
+			submenu.Append(subItem)
+		}
+
+	}
+	item.SetSubmenu(submenu)
+	return item
+}
+
+func listOfMenuValueName(info *GuiMonitorInfo) []menuValueName{
+	list := make([]menuValueName, 9)
+	val := int(info.info.MaxLevel())
+	list[0] = menuValueName{"Max", val, false}
+	list[1] = menuValueName{"Middle", val/2, false}
+	list[2] = menuValueName{"Min", 0, false}
+	list[3] = menuValueName{"---", 0, false} // separator
+	list[4] = menuValueName{"+", 5, true}
+	list[5] = menuValueName{"-", -5, true}
+	list[6] = menuValueName{"---", 0, false} // separator
+	list[7] = menuValueName{"Video day", 14, false}
+	list[8] = menuValueName{"Video night", 8, false}
+	return list
+}
+
+func (info *GuiMonitorInfo)bindOnClick(item *gtk3.MenuItem, menuVal menuValueName) {
+
+	item.Connect("activate", func() {
+		if menuVal.IsDelta {
+			info.LevelChan <- menuVal.Value
+		} else {
+			info.updateMonitor(uint16(menuVal.Value))
+		}
+	})
+}
+
+func createSetBrightnessMenuItem(valInfo menuValueName) (*gtk3.MenuItem){
+
+	label := fmt.Sprintf("%v (%v)", valInfo.Name, valInfo.Value)
+	if valInfo.Name == "-" || valInfo.Name == "+" {
+		val := valInfo.Value
+		if val < 0 {
+			val = -val
+		}
+		label = fmt.Sprintf("%v %v", valInfo.Name, val)
+	}
+	item := gtk3.NewMenuItemWithLabel(label)
+
+	return item
 }
 
 func guiMonitorList(ddcciMonitorList []*goddcci.MonitorInfo) []*GuiMonitorInfo {
