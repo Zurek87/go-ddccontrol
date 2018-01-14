@@ -5,6 +5,14 @@ import (
 	"fmt"
 )
 
+type guiNoMonitorError struct {
+	msg string
+}
+
+func (err guiNoMonitorError) Error() string {
+	return fmt.Sprintf("No monitor: %v", err.msg)
+}
+
 func DialogError(errorMessage string) {
 	gtk3.Init(nil)
 	fmt.Println("------------------------------------------")

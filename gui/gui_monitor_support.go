@@ -77,7 +77,7 @@ func (info *GuiMonitorInfo)Run() {
 
 func (gddcci *GDDCci) SelectMonitor(id int) error {
 	if len(gddcci.list) <= id {
-		return fmt.Errorf("monitor id out of range")
+		return guiNoMonitorError{"monitor ID is out of range"}
 	}
 	gddcci.selected = id
 	return nil

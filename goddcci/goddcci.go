@@ -31,6 +31,13 @@ import (
 */
 import "C"
 
+type goDDCciError struct {
+	msg string
+}
+
+func (err goDDCciError) Error() string {
+	return fmt.Sprintf("DDCci error: %v", err.msg)
+}
 
 type DDCci struct {
 	monitorList *C.struct_monitorlist
@@ -71,7 +78,7 @@ func InitDDCci() (DDCci, error) {
 func probeDDCci() (*C.struct_monitorlist, error) {
 	monitorList := C.ddcci_probe()
 	if monitorList == nil {
-		err := fmt.Errorf("monitor list is empty, is mod 'i2c-dev' loaded? ")
+		err := goDDCciError{"monitor list is empty, is mod 'i2c-dev' loaded? "}
 		return monitorList, err
 	}
 	return monitorList, nil
@@ -88,7 +95,7 @@ func makeDDCci(monitorList *C.struct_monitorlist) DDCci {
 func initDDCci() error {
 	res := int(C.ddcci_init(nil))
 	if res == 0 {
-		return fmt.Errorf("ddcci initialize error")
+		return goDDCciError{"ddcci initialize error"}
 	}
 	return nil
 }
@@ -194,7 +201,7 @@ func printInfo(monList *C.struct_monitorlist) {
 
 func (info *MonitorInfo) SetBrightness(value uint16) error {
 	if info == nil || info.monitor == nil {
-		return fmt.Errorf("monitor closed. Please open first")
+		return goDDCciError{"monitor closed. Please open first"}
 	}
 	var cc C.char = 0x10
 	delay := C.find_write_delay(info.monitor, cc)
@@ -211,7 +218,7 @@ int ddcci_readctrl(struct monitor* mon, unsigned char ctrl,
  */
 func (info *MonitorInfo) ReadCtrl(ctrlNo int8) (uint16, uint16, error) {
 	if info == nil || info.monitor == nil {
-		return 0, 0, fmt.Errorf("monitor closed. Please open first")
+		return 0, 0, goDDCciError{"monitor closed. Please open first"}
 	}
 	cc := C.uchar(ctrlNo)
 

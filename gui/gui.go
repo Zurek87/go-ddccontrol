@@ -129,7 +129,7 @@ func (gddcci *GDDCci)  monitorName() string {
 func (gddcci *GDDCci)  ChangeBrightness(deltaVal int) {
 	monInfo := gddcci.list[gddcci.selected]
 	if monInfo.info == nil {
-		panic(fmt.Errorf("No monitor"))
+		panic(guiNoMonitorError{"monitor is <nil> can't change brightness"})
 	}
 	monInfo.LevelChan <- deltaVal
 }
@@ -137,7 +137,7 @@ func (gddcci *GDDCci)  ChangeBrightness(deltaVal int) {
 func (gddcci *GDDCci)  SetBrightness(value uint16) error {
 	monInfo := gddcci.list[gddcci.selected]
 	if monInfo.info == nil {
-		return fmt.Errorf("no moniotor found")
+		return guiNoMonitorError{"monitor is <nil> can't set brightness"}
 	}
 	return monInfo.info.SetBrightness(value)
 }
