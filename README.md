@@ -1,7 +1,8 @@
 # go-ddccontrol
-go lib to use ddccontrol.
+Go lib to use ddccontrol.
 
-And Gtk3 Icon to change brightness.
+Gtk3 Icon to change brightness.
+
 ![Go GTK!](https://github.com/zurek87/go-ddccontrol/raw/master/static/pic1.png "Menu icon!")
 
 
